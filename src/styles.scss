@@ -1,0 +1,52 @@
+// styles.scss
+
+/* Global styles */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 0;
+    display: flex; /* Use flexbox for centering */
+    justify-content: center; /* Horizontally center */
+    align-items: center; /* Vertically center */
+    min-height: 100vh; /* Take up the full viewport height */
+    padding-bottom: 150px;
+  }
+  
+  /* Other global styles */
+  h1, h2 {
+    font-family: 'Helvetica Neue', sans-serif;
+  }
+  
+  button {
+    cursor: pointer;
+    font-size: 16px;
+  }
+  
+  /* Optional - You can also add custom CSS resets if needed */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  a {
+    text-decoration: none;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 600px) {
+    .weather-container {
+      max-width: 100%;
+      padding: 15px;
+    }
+  
+    .city-input {
+      width: 100%;
+    }
+  
+    button {
+      width: 100%;
+    }
+  }
+  
