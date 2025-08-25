@@ -1,29 +1,44 @@
 <div class="weather-container">
-  <h1>Weather App</h1>
-
-  <input
-    type="text"
-    [(ngModel)]="city"
-    placeholder="Enter city name"
-    class="city-input"
-  />
-  <button pButton (click)="getWeather()">Get Weather</button>
-  
-  <img id="weather-icon" [src]="weatherIconUrl" alt="Weather Icon" *ngIf="weatherIconUrl">
-  
-  <div *ngIf="errorMessage" class="error">
-    {{ errorMessage }}
+  <div *ngIf="!weatherData">
+    <h1>Weather App</h1>
+    <input
+      type="text"
+      [(ngModel)]="city"
+      placeholder="Enter city name"
+      class="city-input"/>
+    <button pButton (click)="getWeather()">Get Weather</button>
+    <img id="weather-icon" [src]="weatherIconUrl" alt="Weather Icon" *ngIf="weatherIconUrl">
+    <div *ngIf="errorMessage" class="error">
+      {{ errorMessage }}
+    </div>
   </div>
 
   <div *ngIf="weatherData" class="weather-result">
-    <h2>Weather Data for {{ city }}</h2>
-    <pre>{{ weatherData | json }}</pre>
-  </div>
-
-  <div id="hourly-forecast">
-    <div *ngFor="let forecast of hourlyForecast" class="forecast-item">
-      <p>{{ forecast.time }}</p>
-      <p>{{ forecast.temp }}°C</p>
+    <h2>{{ weatherData.resolvedAddress }}</h2>
+    <div class="temperature">
+      {{ currentTemperature }} °C
+      <div class="weather-icon">
+        <i *ngIf="weatherIconClass" [ngClass]="weatherIconClass"></i>
+      </div>
     </div>
+    <div class="temperature-container">
+      <div class="feels-like"> Sensación térmica: {{ currentFeelslikeTemp }} °C</div>
+      <div class="temp">
+        <div class="min-temp"> Mín. {{ tempMin }} °C</div>
+        <div class="max-temp">Máx. {{ tempMax }} °C</div>
+      </div>
+    </div>
+    <div>
+      {{ weatherData.alerts }}
+    </div>
+    <div class="description">
+      {{ weatherData.description}}
+    </div>
+        <div id="hourly-forecast">
+          <div *ngFor="let forecast of hourlyForecast" class="forecast-item">
+            <p>{{ forecast.time }}</p>
+            <p>{{ forecast.temp }}°C</p>
+          </div>
+        </div>
   </div>
 </div>

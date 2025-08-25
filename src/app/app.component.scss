@@ -1,6 +1,8 @@
+@import 'src/assets/css/weather-icons.min.css';
+
 .weather-container {
-  background: rgba(255, 255, 255, 0.3);
-  max-width: 400px;
+  background: rgba(218, 216, 221, 0.32);
+  max-width: 500px;
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -39,44 +41,43 @@ button:hover {
 
 .weather-result {
   margin-top: 20px;
-  text-align: left;
-}
-
-pre {
-  background: #f8f9fa;
-  padding: 10px;
-  border-radius: 5px;
-}
-
-#weather-info {
-  font-size: 20px;
-}
-
-#weather-icon {
-  width: 200px;
-  height: 200px;
-  margin: 10px auto;
-  display: none;
-}
-
-#hourly-forecast {
-  margin-top: 20px;
-  overflow-x: auto;
-  white-space: nowrap;
-  display: flex;
-  justify-content: space-between;
-}
-
-.forecast-item {
-  display: inline-block;
-  margin: 10px;
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-radius: 5px;
-  width: 80px;
   text-align: center;
+
+  #hourly-forecast {
+    margin-top: 20px;
+    overflow-x: auto;
+    white-space: nowrap;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .temperature {
+    font-size: 50px;
+    font-family: Al Bayan;
+    color: white;
+  }
 }
 
-.forecast-item p {
-  margin: 0;
+.weather-result i {
+  font-size: 48px;
+  color: #007bff;
+  margin: 10px 0;
 }
+
+.temperature-container {
+  .feels-like {
+    color: #85aafa;
+  }
+  .temp {
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    padding: 1px;
+
+    .min-temp {
+      padding-right: 10px;
+    }
+  }
+}
+
+
