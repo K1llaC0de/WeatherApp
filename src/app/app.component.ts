@@ -1,77 +1,201 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+
+interface GeocodingResult {
+  name: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  admin1?: string;
+}
+
+interface CurrentWeather {
+  temperature_2m: number;
+  relative_humidity_2m: number;
+  wind_speed_10m: number;
+  wind_direction_10m: number;
+  weather_code: number;
+  time: string;
+}
+
+interface DailyForecast {
+  time: string[];
+  temperature_2m_max: number[];
+  temperature_2m_min: number[];
+  weather_code: number[];
+  precipitation_sum: number[];
+}
+
+interface WeatherResponse {
+  current: CurrentWeather;
+  daily: DailyForecast;
+  timezone: string;
+}
+
+type WeatherCode = { description: string; icon: string };
 
 @Component({
   selector: 'app-root',
+  standalone: true,  
   templateUrl: './app.component.html',
-  standalone: false,
-  styleUrls: ['./app.component.scss']
+  styleUrls: ['./app.component.scss'],
+  imports: [FormsModule, CommonModule, MatIconModule]  
 })
-export class AppComponent {
-    city: string = '';
-    weatherData: any = null;
-    hourlyForecast: any[] = [];  // Store hourly forecast data
-    errorMessage: string = '';
-    currentTemperature: string = '';
-    currentFeelslikeTemp: string = '';
-    tempMax: string = '';
-    tempMin: string = '';
-    weatherIconClass: string = '';
-  
-    constructor(private http: HttpClient) {}
-  
-    // Fetch weather data from the backend
-    getWeather() {
-      if (!this.city.trim()) {
-        this.errorMessage = 'Please enter a city name.';
-        return;
-      }
-  
-      this.errorMessage = '';
-      this.weatherData = null;
-      this.hourlyForecast = [];
-      this.weatherIconClass = '';
-      
-      const apiUrl = `http://localhost:3000/weather/${this.city}`;
-      this.http.get(apiUrl).subscribe({
-        next: (data) => {
-          this.weatherData = data;
-          console.log('Weather Data:', this.weatherData);
-          this.currentTemperature = String(Math.trunc(((this.weatherData.currentConditions.temp - 32) * 5/9)));
-          this.currentFeelslikeTemp = String(Math.trunc(((this.weatherData.currentConditions.feelslike - 32) * 5/9)));
+export class AppComponent implements OnInit {  
 
-          const condition = this.weatherData.currentConditions.conditions;
-          console.log('Condition:', condition); // Debugging log for the condition
-          this.weatherIconClass = this.getWeatherIconClass(condition);
-          // Find the temperature for the current day
-          const currentDay = new Date().toISOString().split('T')[0]; // Get current date in 'YYYY-MM-DD' format
-          const currentDayData = this.weatherData.days.find((day: any) => day.datetime === currentDay);
+  city: string = '';
+  loading: boolean = false;
+  errorMessage: string = '';
 
-          if (currentDayData) {
-            this.tempMin = String(Math.trunc(((currentDayData.tempmin - 32) * 5 / 9)));
-            this.tempMax = String(Math.trunc(((currentDayData.tempmax - 32) * 5 / 9)));
-          }
-        },
-        error: (error) => {
-          this.errorMessage = 'Failed to fetch weather data.';
-          console.error(error);
-        }
-      });
-    }
+  weatherData: WeatherResponse | null = null;
+  tempMin: string = '';
+  tempMax: string = '';
+  currentTemperature: string = '';
+  weatherIcon: string = '';
+  
+  // ✅ AÑADIDO: Propiedad recentSearches que faltaba
+  recentSearches: string[] = [];
 
-    getWeatherIconClass(condition: string): string {
-      const descriptionMap: { [key: string]: string } = {
-        'Partially cloudy': 'wi wi-day-cloudy',
-        'Rain': 'wi wi-rain',
-        'Rain, Overcast': 'wi wi-hail',
-        'Snow': 'wi wi-snow',
-        'Thunderstorm': 'wi wi-thunderstorm',
-        'Fog': 'wi wi-fog',
-        'Overcast': 'wi wi-cloudy',
-        'Clear': 'wi wi-day-sunny',
-      };
-    
-      // Return the matching icon class or a default icon
-      return descriptionMap[condition] || 'wi-na';
-    }    
+  // Weather code mapping
+  private weatherCodes: Record<number, WeatherCode> = {
+    0: { description: "Cielo despejado", icon: "☀️" },
+    1: { description: "Principalmente despejado", icon: "🌤️" },
+    2: { description: "Parcialmente nublado", icon: "⛅" },
+    3: { description: "Nublado", icon: "☁️" },
+    45: { description: "Niebla", icon: "🌫️" },
+    48: { description: "Niebla con escarcha", icon: "🌫️" },
+    51: { description: "Llovizna ligera", icon: "🌦️" },
+    53: { description: "Llovizna moderada", icon: "🌦️" },
+    55: { description: "Llovizna intensa", icon: "🌧️" },
+    61: { description: "Lluvia ligera", icon: "🌧️" },
+    63: { description: "Lluvia moderada", icon: "🌧️" },
+    65: { description: "Lluvia intensa", icon: "⛈️" },
+    71: { description: "Nieve ligera", icon: "🌨️" },
+    73: { description: "Nieve moderada", icon: "❄️" },
+    75: { description: "Nieve intensa", icon: "❄️" },
+    95: { description: "Tormenta", icon: "⛈️" },
+    96: { description: "Tormenta con granizo ligero", icon: "⛈️" },
+    99: { description: "Tormenta con granizo intenso", icon: "⛈️" }
+  };
+
+  constructor(private http: HttpClient) {
+    // ✅ CORREGIDO: Cargar búsquedas recientes
+    this.loadRecentSearches();
   }
+
+  // ✅ AÑADIDO: ngOnInit lifecycle hook
+  ngOnInit(): void {
+    // Carga Madrid por defecto al iniciar
+    this.searchCity('Madrid');
+  }
+
+  searchCity(cityName: string) {
+    this.city = cityName;
+    this.getCoordinates(cityName);
+    // ✅ AÑADIDO: Guardar en búsquedas recientes
+    this.addToRecentSearches(cityName);
+  }
+
+  getCoordinates(city: string) {
+    if (!city.trim()) {
+      this.errorMessage = 'Introduce una ciudad.';
+      return;
+    }
+    this.loading = true;
+    this.errorMessage = '';  // ✅ Limpiar error anterior
+    
+    const apiUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=es&format=json`;
+
+    this.http.get<{ results: GeocodingResult[] }>(apiUrl).subscribe({
+      next: (response) => {
+        if (response.results && response.results.length) {
+          const cityObj = response.results[0];
+          this.fetchWeather(cityObj.latitude, cityObj.longitude);
+        } else {
+          this.loading = false;
+          this.errorMessage = 'Ciudad no encontrada.';
+          this.weatherData = null;
+        }
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'Error en la búsqueda de la ciudad.';
+      }
+    });
+  }
+
+  fetchWeather(lat: number, lon: number) {
+    // ✅ CORREGIDO: API URL actualizada
+    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&forecast_days=7&timezone=auto`;
+    
+    this.http.get<WeatherResponse>(apiUrl).subscribe({
+      next: (data) => {
+        this.loading = false;
+        this.weatherData = data;
+        this.updateWeather(data);
+        this.errorMessage = '';
+      },
+      error: () => {
+        this.loading = false;
+        this.weatherData = null;
+        this.errorMessage = 'No se pudieron recuperar los datos del tiempo.';
+      }
+    });
+  }
+
+  updateWeather(data: WeatherResponse) {
+    // Temperatura actual
+    this.currentTemperature = `${Math.round(data.current.temperature_2m)}°C`;
+    // Temp máxima/mínima para hoy
+    this.tempMax = `${Math.round(data.daily.temperature_2m_max[0])}°C`;
+    this.tempMin = `${Math.round(data.daily.temperature_2m_min[0])}°C`;
+    // Icono según weather_code
+    const code = data.current.weather_code;
+    this.weatherIcon = this.weatherCodes[code]?.icon || '🌈';
+  }
+
+  // ✅ AÑADIDO: Método que faltaba
+  getWeatherDescription(weatherCode: number): string {
+    return this.weatherCodes[weatherCode]?.description || 'Condiciones variables';
+  }
+
+  onSearch() {
+    if (this.city.trim()) {
+      this.getCoordinates(this.city);
+      this.addToRecentSearches(this.city);
+    }
+  }
+
+  // ✅ AÑADIDO: Métodos para búsquedas recientes
+  private addToRecentSearches(city: string): void {
+    const trimmedCity = city.trim();
+    if (trimmedCity && !this.recentSearches.includes(trimmedCity)) {
+      this.recentSearches.unshift(trimmedCity);
+      this.recentSearches = this.recentSearches.slice(0, 5); // Mantener solo las últimas 5
+      this.saveRecentSearches();
+    }
+  }
+
+  private loadRecentSearches(): void {
+    try {
+      const saved = localStorage.getItem('recentWeatherSearches');
+      if (saved) {
+        this.recentSearches = JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Error cargando búsquedas recientes:', error);
+      this.recentSearches = [];
+    }
+  }
+
+  private saveRecentSearches(): void {
+    try {
+      localStorage.setItem('recentWeatherSearches', JSON.stringify(this.recentSearches));
+    } catch (error) {
+      console.error('Error guardando búsquedas recientes:', error);
+    }
+  }
+}

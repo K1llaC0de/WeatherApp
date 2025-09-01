@@ -1,6 +1,6 @@
 # WeatherApp
 # [26-01-2025] Primera versión (1.0.0)
-
+# [01-09-2025] Segunda versión (2.0.0)
 ---
 
 ## Pasos para compilar y ejecutar la aplicación (Español)
